@@ -1233,21 +1233,19 @@
       <div><b>7.8%</b><span>Return on Cost (Stabilized)</span></div>
     </div>
 
-    <!-- Sources -->
-    <div class="table-scroll reveal">
-      <table class="data">
-        <caption>Sources</caption>
-        <thead><tr><th>Source</th><th>%</th><th>Total</th><th>$/Unit</th></tr></thead>
-        <tbody>
-          <tr><td>Total equity needed</td><td>35%</td><td>$8,677,460</td><td>$510,000</td></tr>
-          <tr><td>Construction loan</td><td>65%</td><td>$16,120,000</td><td>$948,000</td></tr>
-          <tr class="total"><td>Total sources</td><td>100%</td><td>$24,797,460</td><td>$1,459,000</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Uses + Financing -->
-    <div class="two-tables reveal mt-26">
+    <!-- Sources + Uses -->
+    <div class="two-tables reveal">
+      <div class="table-scroll">
+        <table class="data">
+          <caption>Sources</caption>
+          <thead><tr><th>Source</th><th>%</th><th>Total</th><th>$/Unit</th></tr></thead>
+          <tbody>
+            <tr><td>Total equity needed</td><td>35%</td><td>$8,677,460</td><td>$510,000</td></tr>
+            <tr><td>Construction loan</td><td>65%</td><td>$16,120,000</td><td>$948,000</td></tr>
+            <tr class="total"><td>Total sources</td><td>100%</td><td>$24,797,460</td><td>$1,459,000</td></tr>
+          </tbody>
+        </table>
+      </div>
       <div class="table-scroll">
         <table class="data">
           <caption>Uses</caption>
@@ -1261,25 +1259,26 @@
           </tbody>
         </table>
       </div>
-      <div class="table-scroll">
-        <table class="data">
-          <caption>Financing</caption>
-          <thead><tr><th>Term</th><th>Acq. Loan</th><th>Construction</th><th>Permanent</th></tr></thead>
-          <tbody>
-            <tr><td>Loan sizing</td><td>0% LTC</td><td>65% LTC</td><td>62.5% LTV</td></tr>
-            <tr><td>Loan amount</td><td>$0</td><td>$16,120,000</td><td>$18,562,500</td></tr>
-            <tr><td>Interest rate</td><td>9.00%</td><td>8.00%</td><td>7.00%</td></tr>
-            <tr><td>I/O period</td><td>Full term</td><td>Full term</td><td>36 months</td></tr>
-            <tr><td>Amortization</td><td>N/A</td><td>N/A</td><td>30-year</td></tr>
-            <tr><td>Annual payment</td><td>—</td><td>($1,289,600)</td><td>($1,481,961)</td></tr>
-            <tr><td>Debt coverage (DSCR)</td><td>—</td><td>1.50x</td><td>1.30x</td></tr>
-          </tbody>
-        </table>
-      </div>
+    </div>
+
+    <!-- Project Level Returns -->
+    <div class="table-scroll reveal mt-26">
+      <table class="data">
+        <caption>Project Level Returns</caption>
+        <thead><tr><th>Metric</th><th>Unlevered</th><th>Levered</th></tr></thead>
+        <tbody>
+          <tr><td>IRR</td><td>11.9%</td><td>15.8%</td></tr>
+          <tr><td>Equity multiple</td><td>4.8x</td><td>8.2x</td></tr>
+          <tr><td>Return on cost</td><td>8.7%</td><td>7.8%</td></tr>
+          <tr><td>Distributions</td><td>$107,293,986</td><td>$71,391,749</td></tr>
+          <tr><td>Equity required</td><td>$22,250,336</td><td>$8,677,460</td></tr>
+          <tr class="total"><td>Net profit</td><td>$85,043,649</td><td>$62,714,289</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Forecasted P&L -->
-    <div class="table-scroll reveal mt-56">
+    <div class="table-scroll reveal mt-26">
       <table class="data">
         <caption>Forecasted P&amp;L — Stabilized (Jun-29) / Exit (Nov-45)</caption>
         <thead><tr><th>Line Item</th><th>% Rev</th><th>Stabilized</th><th>Exit</th></tr></thead>
@@ -1306,22 +1305,6 @@
       </table>
     </div>
 
-    <!-- Project Level Returns -->
-    <div class="table-scroll reveal mt-26">
-      <table class="data">
-        <caption>Project Level Returns</caption>
-        <thead><tr><th>Metric</th><th>Unlevered</th><th>Levered</th></tr></thead>
-        <tbody>
-          <tr><td>IRR</td><td>11.9%</td><td>15.8%</td></tr>
-          <tr><td>Equity multiple</td><td>4.8x</td><td>8.2x</td></tr>
-          <tr><td>Return on cost</td><td>8.7%</td><td>7.8%</td></tr>
-          <tr><td>Distributions</td><td>$107,293,986</td><td>$71,391,749</td></tr>
-          <tr><td>Equity required</td><td>$22,250,336</td><td>$8,677,460</td></tr>
-          <tr class="total"><td>Net profit</td><td>$85,043,649</td><td>$62,714,289</td></tr>
-        </tbody>
-      </table>
-    </div>
-
     <!-- Unit mix -->
     <div class="table-scroll reveal mt-26">
       <table class="data">
@@ -1335,9 +1318,14 @@
         </tbody>
       </table>
     </div>
+  </div>
+</section>
 
-    <!-- Restaurant P&L -->
-    <div class="section-head reveal" style="margin-top:100px;">
+<!-- ============ RESTAURANT PRO FORMA (own section) ============ -->
+<section class="pad" id="restaurant-financials" style="background:var(--cream-2);">
+  <div class="wrap">
+    <div class="part-label reveal"><span class="rule"></span>Restaurant Pro Forma</div>
+    <div class="section-head reveal">
       <span class="eyebrow">Pro Forma — Restaurant</span>
       <h2>Annual operating projection, first full year.</h2>
     </div>
