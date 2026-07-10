@@ -311,22 +311,28 @@
 
   /* ============ WHITESPACE MATRIX ============ */
   .matrix-wrap{position:relative;background:var(--cream-2);border:1px solid var(--line);border-radius:2px;padding:56px 56px 64px;}
-  .matrix{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;min-height:460px;}
-  .matrix::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line);}
-  .matrix::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--line);}
-  .quad{padding:20px 26px;display:flex;flex-direction:column;gap:10px;}
-  .quad.whitespace{background:rgba(131,102,58,.08);}
-  .quad .q-label{font-family:'Josefin Sans',sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--umber-50);margin-bottom:4px;}
-  .m-dot{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--umber-70);font-weight:300;}
-  .m-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--umber-50);flex:0 0 auto;}
-  .m-dot.hero-dot{font-family:'Josefin Sans',sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--clay-dark);}
-  .m-dot.hero-dot::before{width:13px;height:13px;background:var(--clay);box-shadow:0 0 0 5px rgba(131,102,58,.18);}
+  .scatter{position:relative;aspect-ratio:424/196;min-height:340px;}
+  .scatter::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line);}
+  .scatter::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--line);}
+  .scatter-highlight{position:absolute;left:50%;top:0;right:0;bottom:50%;background:rgba(131,102,58,.08);}
+  .scatter-pt{position:absolute;}
+  .scatter-pt::before{content:'';position:absolute;left:0;top:0;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--umber-50);}
+  .scatter-pt .lbl{position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:13px;color:var(--umber-70);font-weight:300;line-height:1.3;}
+  .scatter-pt .lbl.r{left:12px;}
+  .scatter-pt .lbl.l{right:12px;text-align:right;}
+  .scatter-pt.primary::before{width:16px;height:16px;margin:-8px 0 0 -8px;background:var(--clay);box-shadow:0 0 0 5px rgba(131,102,58,.18);}
+  .scatter-pt.primary .lbl{font-family:'Josefin Sans',sans-serif;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--clay-dark);}
   .axis-x,.axis-y{position:absolute;font-family:'Josefin Sans',sans-serif;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--umber-50);}
   .axis-x.left{bottom:22px;left:56px;}
   .axis-x.right{bottom:22px;right:56px;}
   .axis-y.top{top:18px;left:50%;transform:translateX(-50%);}
   .axis-y.bottom{bottom:22px;left:50%;transform:translateX(-50%);}
-  @media (max-width:720px){ .matrix-wrap{padding:34px 20px 52px;} .quad{padding:12px;} }
+  @media (max-width:720px){
+    .matrix-wrap{padding:34px 20px 52px;}
+    .scatter{aspect-ratio:auto;min-height:820px;}
+    .scatter-pt .lbl{font-size:11px;white-space:normal;max-width:88px;line-height:1.25;}
+    .scatter-pt.primary .lbl{font-size:11px;max-width:100px;}
+  }
 
   /* ============ PRICING SPECTRUM ============ */
   .spectrum{margin:50px 0 60px;}
@@ -819,32 +825,21 @@
     </div>
     <div class="matrix-wrap reveal">
       <div class="axis-y top">Upscale</div>
-      <div class="matrix">
-        <div class="quad">
-          <span class="q-label">Upscale · Resort</span>
-          <span class="m-dot">Rancho Valencia (51)</span>
-          <span class="m-dot">Four Seasons Aviara (42)</span>
-          <span class="m-dot">Alila Marea (130)</span>
-          <span class="m-dot">L&rsquo;Auberge Del Mar (121)</span>
-          <span class="m-dot">Omni La Costa (123)</span>
-        </div>
-        <div class="quad whitespace">
-          <span class="q-label">Upscale · Boutique</span>
-          <span class="m-dot hero-dot">La Costa Hotel (17)</span>
-          <span class="m-dot">Hotel Joaquin (22)*</span>
-          <span class="m-dot">Twelve Senses</span>
-        </div>
-        <div class="quad" style="justify-content:flex-end;">
-          <span class="q-label">Affordable · Resort</span>
-          <span class="m-dot">Grand Pacific Palisades</span>
-          <span class="m-dot">Carlsbad Inn Beach Resort</span>
-          <span class="m-dot">Budget motels</span>
-        </div>
-        <div class="quad" style="justify-content:flex-end;">
-          <span class="q-label">Affordable · Boutique</span>
-          <span class="m-dot">Surfhouse</span>
-          <span class="m-dot">Leucadia Beach Inn</span>
-        </div>
+      <div class="scatter">
+        <div class="scatter-highlight"></div>
+        <div class="scatter-pt" style="left:8.1%;top:8.3%;"><span class="lbl r">Rancho Valencia (51)</span></div>
+        <div class="scatter-pt" style="left:17.1%;top:15.3%;"><span class="lbl r">Four Seasons Aviara (42)</span></div>
+        <div class="scatter-pt" style="left:29.1%;top:22.3%;"><span class="lbl r">Alila Marea (130)</span></div>
+        <div class="scatter-pt" style="left:38.1%;top:30.3%;"><span class="lbl r">L&rsquo;Auberge Del Mar (121)</span></div>
+        <div class="scatter-pt" style="left:18.1%;top:42.3%;"><span class="lbl r">Omni La Costa (123)</span></div>
+        <div class="scatter-pt" style="left:23.1%;top:70.3%;"><span class="lbl r">Grand Pacific Palisades</span></div>
+        <div class="scatter-pt" style="left:35.1%;top:80.3%;"><span class="lbl r">Carlsbad Inn Beach Resort</span></div>
+        <div class="scatter-pt" style="left:52.1%;top:91.3%;"><span class="lbl r">Budget motels</span></div>
+        <div class="scatter-pt" style="left:86.1%;top:19.3%;"><span class="lbl l">Hotel Joaquin (22)*</span></div>
+        <div class="scatter-pt" style="left:83.1%;top:43.3%;"><span class="lbl l">Twelve Senses</span></div>
+        <div class="scatter-pt" style="left:90.1%;top:60.3%;"><span class="lbl l">Surfhouse</span></div>
+        <div class="scatter-pt" style="left:81.1%;top:78.3%;"><span class="lbl l">Leucadia Beach Inn</span></div>
+        <div class="scatter-pt primary" style="left:60.1%;top:28.3%;"><span class="lbl r">La Costa Hotel (17)</span></div>
       </div>
       <div class="axis-x left">Resort</div>
       <div class="axis-y bottom" style="bottom:8px;">Affordable</div>
