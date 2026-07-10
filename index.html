@@ -283,12 +283,12 @@
   /* ============ DATA TABLES ============ */
   .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:2px;background:var(--cream-2);}
   .dark .table-scroll{background:rgba(251,247,238,.04);border-color:rgba(251,247,238,.16);}
-  table.data{width:100%;border-collapse:collapse;font-size:13px;min-width:640px;}
+  table.data{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
   table.data caption{text-align:left;font-family:'Josefin Sans',sans-serif;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);padding:18px 20px 4px;}
-  table.data th{font-family:'Josefin Sans',sans-serif;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--umber-50);font-weight:600;text-align:right;padding:14px 14px;border-bottom:1px solid var(--line);white-space:nowrap;}
-  table.data th:first-child{text-align:left;padding-left:20px;}
-  table.data td{padding:10px 14px;text-align:right;border-bottom:1px solid rgba(43,26,19,.07);font-weight:300;white-space:nowrap;font-variant-numeric:tabular-nums;}
-  table.data td:first-child{text-align:left;font-weight:400;padding-left:20px;}
+  table.data th{font-family:'Josefin Sans',sans-serif;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--umber-50);font-weight:600;text-align:right;padding:14px 10px;border-bottom:1px solid var(--line);white-space:normal;word-break:break-word;}
+  table.data th:first-child{text-align:left;padding-left:16px;width:32%;}
+  table.data td{padding:10px 10px;text-align:right;border-bottom:1px solid rgba(43,26,19,.07);font-weight:300;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  table.data td:first-child{text-align:left;font-weight:400;padding-left:16px;white-space:normal;}
   table.data tr:last-child td{border-bottom:none;}
   table.data tr.total td{font-weight:700;border-top:1px solid var(--line);background:rgba(131,102,58,.06);}
   table.data tr.subhead td{font-family:'Josefin Sans',sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--clay);font-weight:600;padding-top:18px;background:none;}
@@ -297,6 +297,11 @@
   .dark table.data tr.total td{background:rgba(251,247,238,.06);border-color:rgba(251,247,238,.16);}
   .dark table.data caption{color:#C9A876;}
   .dark table.data tr.subhead td{color:#C9A876;}
+  @media (max-width:560px){
+    table.data{font-size:11px;}
+    table.data th,table.data td{padding:8px 5px;}
+    table.data th:first-child,table.data td:first-child{padding-left:12px;}
+  }
   .tbl-note{font-size:12px;color:var(--umber-50);font-weight:300;margin-top:12px;line-height:1.6;}
   .dark .tbl-note{color:rgba(251,247,238,.45);}
   .two-tables{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;}
@@ -310,6 +315,7 @@
   .matrix::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line);}
   .matrix::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--line);}
   .quad{padding:20px 26px;display:flex;flex-direction:column;gap:10px;}
+  .quad.whitespace{background:rgba(131,102,58,.08);}
   .quad .q-label{font-family:'Josefin Sans',sans-serif;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--umber-50);margin-bottom:4px;}
   .m-dot{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--umber-70);font-weight:300;}
   .m-dot::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--umber-50);flex:0 0 auto;}
@@ -822,10 +828,11 @@
           <span class="m-dot">L&rsquo;Auberge Del Mar (121)</span>
           <span class="m-dot">Omni La Costa (123)</span>
         </div>
-        <div class="quad">
+        <div class="quad whitespace">
           <span class="q-label">Upscale · Boutique</span>
           <span class="m-dot hero-dot">La Costa Hotel (17)</span>
           <span class="m-dot">Hotel Joaquin (22)*</span>
+          <span class="m-dot">Twelve Senses</span>
         </div>
         <div class="quad" style="justify-content:flex-end;">
           <span class="q-label">Affordable · Resort</span>
@@ -835,7 +842,6 @@
         </div>
         <div class="quad" style="justify-content:flex-end;">
           <span class="q-label">Affordable · Boutique</span>
-          <span class="m-dot">Twelve Senses</span>
           <span class="m-dot">Surfhouse</span>
           <span class="m-dot">Leucadia Beach Inn</span>
         </div>
@@ -1237,10 +1243,7 @@
           <caption>Sources</caption>
           <thead><tr><th>Source</th><th>%</th><th>Total</th><th>$/Unit</th></tr></thead>
           <tbody>
-            <tr><td>LB</td><td>13%</td><td>$1,100,000</td><td>$65,000</td></tr>
-            <tr><td>Alberto</td><td>15%</td><td>$1,277,460</td><td>$75,000</td></tr>
-            <tr><td>Highway 101 LLC</td><td>73%</td><td>$6,300,000</td><td>$371,000</td></tr>
-            <tr><td>Total equity</td><td>35%</td><td>$8,677,460</td><td>$510,000</td></tr>
+            <tr><td>Total equity needed</td><td>35%</td><td>$8,677,460</td><td>$510,000</td></tr>
             <tr><td>Construction loan</td><td>65%</td><td>$16,120,000</td><td>$948,000</td></tr>
             <tr class="total"><td>Total sources</td><td>100%</td><td>$24,797,460</td><td>$1,459,000</td></tr>
           </tbody>
