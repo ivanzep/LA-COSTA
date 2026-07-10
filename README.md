@@ -90,6 +90,21 @@ for both comp sets lives in the `STR` object in the `<script>` block. Tab
 buttons (`.chart-tabs`) swap between occupancy/ADR/RevPAR by re-rendering the
 SVG — extend `STR` and `MONTHS` if the data range grows.
 
+## Export PDF button
+
+The "Export PDF" button (nav bar + mobile menu, `.pdf-export-btn`) forces every
+scroll-triggered `.reveal`/`.reveal-stagger` section visible, then calls
+`window.print()`. There's no PDF-generation library involved — the actual
+export is a `@media print` stylesheet (bottom of the `<style>` block) that
+hides the nav/mobile menu/chart tabs, forces background colors and images to
+print (`print-color-adjust:exact`), and sets `@page{size:landscape}` so the
+two-column tables keep their desktop layout instead of squeezing into a
+portrait column. The user picks "Save as PDF" as the destination in the
+native print dialog. This keeps the export dependency-free and pixel-faithful
+to the live page, consistent with the rest of the site's no-CDN, offline-first
+approach — it does not attempt to render all three chart tab states, only
+whichever one is on-screen at export time.
+
 ## Known gotchas (learned the hard way — don't rediscover these)
 
 - **Full-page screenshot tools break on this page's height.** The page is
