@@ -71,7 +71,8 @@
   nav.links a{font-family:'Josefin Sans',sans-serif;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--cream-2);opacity:.88;padding-bottom:3px;border-bottom:1px solid transparent;transition:color .4s var(--ease),border-color .3s var(--ease),opacity .3s;}
   header.nav.solid nav.links a{color:var(--umber);}
   nav.links a:hover{opacity:1;border-color:currentColor;}
-  .nav-cta{font-family:'Josefin Sans',sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;border:1px solid rgba(251,247,238,.55);color:var(--cream-2);padding:9px 18px;border-radius:2px;transition:all .4s var(--ease);}
+  .nav-actions{display:flex;align-items:center;gap:10px;}
+  .nav-cta{font-family:'Josefin Sans',sans-serif;font-size:12px;letter-spacing:.14em;text-transform:uppercase;border:1px solid rgba(251,247,238,.55);background:none;color:var(--cream-2);padding:9px 18px;border-radius:2px;transition:all .4s var(--ease);cursor:pointer;appearance:none;-webkit-appearance:none;}
   header.nav.solid .nav-cta{border-color:var(--umber);color:var(--umber);}
   .nav-cta:hover{background:var(--cream-2);color:var(--umber);}
   header.nav.solid .nav-cta:hover{background:var(--umber);color:var(--cream-2);}
@@ -80,13 +81,14 @@
   header.nav.solid .menu-btn span{background:var(--umber);}
   @media (max-width:1100px){
     nav.links{display:none;}
-    .nav-cta{display:none;}
+    .nav-actions{display:none;}
     .menu-btn{display:flex;}
   }
   .mobile-menu{position:fixed;inset:0;z-index:99;background:var(--umber);color:var(--cream-2);display:flex;flex-direction:column;justify-content:center;gap:20px;padding:0 40px;opacity:0;visibility:hidden;transform:translateY(-12px);transition:opacity .4s var(--ease),transform .4s var(--ease),visibility .4s;overflow-y:auto;}
   .mobile-menu.open{opacity:1;visibility:visible;transform:translateY(0);}
   .mobile-menu a{font-family:'Fraunces',serif;font-size:27px;font-weight:400;}
   .mobile-menu .m-cta{margin-top:16px;font-family:'Josefin Sans',sans-serif;font-size:13px;letter-spacing:.14em;text-transform:uppercase;border:1px solid rgba(251,247,238,.5);padding:14px 26px;width:fit-content;border-radius:2px;}
+  .pdf-export-btn{background:none;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;}
 
   /* ============ HERO ============ */
   .hero{position:relative;height:100svh;min-height:560px;display:flex;align-items:flex-end;overflow:hidden;background:var(--umber);}
@@ -426,6 +428,17 @@
   @media (max-width:900px){ .footer-grid{grid-template-columns:1fr 1fr;row-gap:40px;} }
   @media (max-width:560px){ .footer-grid{grid-template-columns:1fr;} }
   .footer-bottom{display:flex;justify-content:space-between;font-size:12px;color:rgba(251,247,238,.45);flex-wrap:wrap;gap:10px;}
+
+  /* ============ PRINT / PDF EXPORT ============ */
+  @media print{
+    @page{ size:landscape; margin:12mm; }
+    *,*::before,*::after{ -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
+    header.nav,.mobile-menu,.scroll-cue,.chart-tabs,footer .footer-btn{ display:none !important; }
+    .reveal,.reveal-stagger > *{ opacity:1 !important; transform:none !important; transition:none !important; }
+    .pad,.pad-sm{ padding:26px 0 !important; }
+    .table-scroll{ overflow-x:visible !important; }
+    .matrix-wrap,.table-scroll,.highlight-card,.insp-card,.pillar,.chart-svg-wrap,.strat-col,.plan-card{ page-break-inside:avoid; break-inside:avoid; }
+  }
 </style>
 </head>
 <body>
@@ -444,7 +457,10 @@
     <a href="#experience">Experience</a>
     <a href="#financials">Financials</a>
   </nav>
-  <a href="#contact" class="nav-cta">Contact</a>
+  <div class="nav-actions">
+    <a href="#contact" class="nav-cta">Contact</a>
+    <button type="button" class="nav-cta pdf-export-btn" id="exportPdfBtn">Export PDF</button>
+  </div>
   <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false"><span></span><span></span></button>
 </header>
 
@@ -457,6 +473,7 @@
   <a href="#experience">Experience</a>
   <a href="#financials">Financials</a>
   <a href="#contact" class="m-cta">Contact</a>
+  <button type="button" class="m-cta pdf-export-btn" id="exportPdfBtnMobile">Export PDF</button>
 </div>
 
 <!-- ============ HERO ============ -->
@@ -1562,6 +1579,20 @@
     entries.forEach(e => { if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
   }, { threshold:0.12, rootMargin:'0px 0px -50px 0px' });
   document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => io.observe(el));
+
+  // export PDF: reveal every section before handing off to the browser's print-to-PDF
+  let pdfForcedEls = [];
+  document.querySelectorAll('.pdf-export-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pdfForcedEls = Array.from(document.querySelectorAll('.reveal:not(.in), .reveal-stagger:not(.in)'));
+      pdfForcedEls.forEach(el => el.classList.add('in'));
+      window.print();
+    });
+  });
+  window.addEventListener('afterprint', () => {
+    pdfForcedEls.forEach(el => el.classList.remove('in'));
+    pdfForcedEls = [];
+  });
 
   // mobile menu
   const menuBtn = document.getElementById('menuBtn');
