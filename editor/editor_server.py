@@ -305,10 +305,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
 
+class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    # A single slow/kept-open connection must not block every other request —
+    # plain socketserver.TCPServer handles one request at a time, which made
+    # the editor UI look like it hung whenever a browser left a connection
+    # idle (e.g. favicon retry, a stalled preview iframe).
+    daemon_threads = True
+    allow_reuse_address = True
+
+
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    with socketserver.TCPServer(("0.0.0.0", port), Handler) as httpd:
+    with ThreadingHTTPServer(("0.0.0.0", port), Handler) as httpd:
         print(f"Section editor running at http://localhost:{port}/")
         print(f"Source files: {SOURCES['index']}, {SOURCES['summary']}")
         print(f"Output written to: {OUTPUT_DIR}/")
