@@ -105,6 +105,38 @@ to the live page, consistent with the rest of the site's no-CDN, offline-first
 approach — it does not attempt to render all three chart tab states, only
 whichever one is on-screen at export time.
 
+## Visual section editor
+
+`editor/` holds a local-only tool for reordering, editing, and adding the
+top-level `<section>` blocks of `index.html` / `index-summary.html` through a
+browser UI, instead of hand-editing the giant single file.
+
+```
+python3 editor/editor_server.py        # serves http://localhost:8000/
+```
+
+- Pick a file (`index.html` or `index-summary.html`) from the dropdown.
+- Drag section cards in the left list to reorder; click one to edit its raw
+  HTML with a live rendered preview alongside; **+ Add section** inserts a
+  blank template; the ✕ on a card removes it from the build (the source file
+  on disk is untouched either way).
+- **Build** writes a complete, reassembled file to `editor/output/` (gitignored,
+  never the real `index.html`/`index-summary.html`) — review it, then replace
+  the real file yourself once you're happy.
+
+How it works: `editor_server.py` splits a source file into a fixed preamble
+(`<head>`, nav, mobile menu), the reorderable list of sibling `<section>`
+blocks (any `<!-- comment -->` immediately before a section travels with it),
+and a fixed postamble (footer + closing `<script>`). Splitting is plain
+string/depth scanning, not an HTML parser, so untouched sections pass through
+byte-for-byte — important given the multi-hundred-KB single lines from
+inlined base64 images. A no-op Build (no edits, no reorder) reproduces the
+source file exactly.
+
+Reordering only moves the `<section>` blocks themselves — it does not rewrite
+hardcoded text like "Part Three — Positioning" inside a section, so fix that
+by hand in the HTML editor pane if you reorder the numbered Part sections.
+
 ## Known gotchas (learned the hard way — don't rediscover these)
 
 - **Full-page screenshot tools break on this page's height.** The page is

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Costa Hotel — Section Editor</title>
+<style>
+  :root{
+    --bg:#1b1410; --panel:#241b15; --panel-2:#2b201a; --line:#3c2f26;
+    --text:#f2ece2; --text-dim:#b9ab9b; --accent:#c99a5b; --accent-2:#8a6a3f;
+    --danger:#b85c4a; --ok:#6a8a5c;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;}
+  header{display:flex;align-items:center;gap:18px;padding:12px 18px;background:var(--panel);border-bottom:1px solid var(--line);}
+  header h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.02em;}
+  header .sub{font-size:12px;color:var(--text-dim);}
+  select{background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-size:13px;}
+  button{background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:4px;padding:7px 14px;font-size:13px;cursor:pointer;}
+  button:hover{border-color:var(--accent);}
+  button.primary{background:var(--accent);color:#1b1410;border-color:var(--accent);font-weight:600;}
+  button.primary:hover{background:#d6ab70;}
+  button.danger{color:var(--danger);}
+  button:disabled{opacity:.4;cursor:default;}
+  #status{font-size:12.5px;color:var(--text-dim);margin-left:auto;max-width:420px;}
+  #status.ok{color:var(--ok);}
+  #status.err{color:var(--danger);}
+
+  .layout{display:flex;height:calc(100vh - 53px);}
+  #sidebar{width:300px;flex:0 0 300px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;}
+  #sidebar .toolbar{padding:10px;border-bottom:1px solid var(--line);display:flex;gap:8px;}
+  #list{flex:1;overflow-y:auto;padding:8px;}
+  .item{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:9px 10px;margin-bottom:6px;cursor:grab;display:flex;align-items:center;gap:8px;user-select:none;}
+  .item:active{cursor:grabbing;}
+  .item.selected{border-color:var(--accent);background:#352819;}
+  .item.dragover{border-top:2px solid var(--accent);}
+  .item .handle{color:var(--text-dim);font-size:13px;}
+  .item .meta{flex:1;min-width:0;}
+  .item .meta .title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .item .meta .id{font-size:11px;color:var(--text-dim);font-family:ui-monospace,monospace;}
+  .item .del{opacity:0;background:none;border:none;color:var(--text-dim);padding:2px 6px;font-size:14px;}
+  .item:hover .del{opacity:1;}
+  .item .del:hover{color:var(--danger);}
+
+  #main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  #editPane{flex:1;display:flex;min-height:0;}
+  #codeCol, #previewCol{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--line);}
+  #previewCol{border-right:none;}
+  .col-head{padding:8px 14px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--line);background:var(--panel);}
+  textarea{flex:1;border:none;outline:none;background:#15100c;color:#e8e0d4;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;line-height:1.5;padding:14px;resize:none;}
+  iframe{flex:1;border:none;background:#fff;}
+  #empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:14px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>La Costa Hotel — Section Editor</h1>
+  <select id="fileSelect">
+    <option value="index">index.html (full site)</option>
+    <option value="summary">index-summary.html (financials summary)</option>
+  </select>
+  <span class="sub">reorder · edit · add — then Build</span>
+  <span id="status"></span>
+  <button id="buildBtn" class="primary">Build →  editor/output/</button>
+</header>
+
+<div class="layout">
+  <div id="sidebar">
+    <div class="toolbar">
+      <button id="addBtn" style="flex:1;">+ Add section</button>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <div id="main">
+    <div id="editPane">
+      <div id="empty">Select a section on the left, or add a new one.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = { file: 'index', sections: [], selectedUid: null, chromeHead: '' };
+
+const fileSelect = document.getElementById('fileSelect');
+const listEl = document.getElementById('list');
+const editPane = document.getElementById('editPane');
+const statusEl = document.getElementById('status');
+const buildBtn = document.getElementById('buildBtn');
+const addBtn = document.getElementById('addBtn');
+
+function setStatus(msg, cls){
+  statusEl.textContent = msg || '';
+  statusEl.className = cls || '';
+}
+
+async function loadFile(key){
+  state.file = key;
+  state.selectedUid = null;
+  setStatus('Loading…');
+  const [secRes, chromeRes] = await Promise.all([
+    fetch('/api/sections?file=' + encodeURIComponent(key)).then(r => r.json()),
+    fetch('/api/chrome?file=' + encodeURIComponent(key)).then(r => r.json()),
+  ]);
+  if (secRes.error) { setStatus('Error: ' + secRes.error, 'err'); return; }
+  state.sections = secRes.sections;
+  state.chromeHead = chromeRes.head || '';
+  renderList();
+  renderEditPane();
+  setStatus('');
+}
+
+function renderList(){
+  listEl.innerHTML = '';
+  state.sections.forEach((s) => {
+    const item = document.createElement('div');
+    item.className = 'item' + (s.uid === state.selectedUid ? ' selected' : '');
+    item.draggable = true;
+    item.dataset.uid = s.uid;
+    item.innerHTML = `
+      <span class="handle">⠿</span>
+      <span class="meta">
+        <div class="title">${escapeHtml(s.label || '(untitled)')}</div>
+        <div class="id">#${escapeHtml(s.id || '—')}</div>
+      </span>
+      <button class="del" title="Remove section">✕</button>
+    `;
+    item.addEventListener('click', (e) => {
+      if (e.target.classList.contains('del')) return;
+      state.selectedUid = s.uid;
+      renderList();
+      renderEditPane();
+    });
+    item.querySelector('.del').addEventListener('click', () => {
+      if (!confirm(`Remove "${s.label}" from the build? (source file on disk is untouched)`)) return;
+      state.sections = state.sections.filter(x => x.uid !== s.uid);
+      if (state.selectedUid === s.uid) state.selectedUid = null;
+      renderList();
+      renderEditPane();
+    });
+    item.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/uid', s.uid);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      item.classList.add('dragover');
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('dragover'));
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      item.classList.remove('dragover');
+      const draggedUid = e.dataTransfer.getData('text/uid');
+      if (!draggedUid || draggedUid === s.uid) return;
+      const fromIdx = state.sections.findIndex(x => x.uid === draggedUid);
+      const toIdx = state.sections.findIndex(x => x.uid === s.uid);
+      const [moved] = state.sections.splice(fromIdx, 1);
+      state.sections.splice(toIdx, 0, moved);
+      renderList();
+    });
+    listEl.appendChild(item);
+  });
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function currentSection(){
+  return state.sections.find(s => s.uid === state.selectedUid) || null;
+}
+
+function renderEditPane(){
+  const sec = currentSection();
+  if (!sec){
+    editPane.innerHTML = '<div id="empty">Select a section on the left, or add a new one.</div>';
+    return;
+  }
+  editPane.innerHTML = `
+    <div id="codeCol">
+      <div class="col-head">HTML — ${escapeHtml(sec.label)}</div>
+      <textarea id="codeArea" spellcheck="false">${escapeHtml(sec.html)}</textarea>
+    </div>
+    <div id="previewCol">
+      <div class="col-head">Live preview</div>
+      <iframe id="previewFrame"></iframe>
+    </div>
+  `;
+  const codeArea = document.getElementById('codeArea');
+  codeArea.addEventListener('input', () => {
+    sec.html = codeArea.value;
+    renderPreview(sec.html);
+  });
+  renderPreview(sec.html);
+}
+
+let previewTimer = null;
+function renderPreview(html){
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    const frame = document.getElementById('previewFrame');
+    if (!frame) return;
+    const doc = `<!DOCTYPE html><html><head>${state.chromeHead}</head>` +
+      `<body style="margin:0;">${html}` +
+      `<script>document.querySelectorAll('.reveal,.reveal-stagger').forEach(e=>e.classList.add('in'));<\/script>` +
+      `</body></html>`;
+    frame.srcdoc = doc;
+  }, 250);
+}
+
+addBtn.addEventListener('click', async () => {
+  const res = await fetch('/api/new-section-template').then(r => r.json());
+  const uid = state.file + '-new-' + Date.now();
+  const newSec = { uid, id: 'new-section', label: 'New section', html: res.html };
+  const insertAt = state.selectedUid
+    ? state.sections.findIndex(s => s.uid === state.selectedUid) + 1
+    : state.sections.length;
+  state.sections.splice(insertAt, 0, newSec);
+  state.selectedUid = uid;
+  renderList();
+  renderEditPane();
+});
+
+buildBtn.addEventListener('click', async () => {
+  setStatus('Building…');
+  buildBtn.disabled = true;
+  try {
+    const res = await fetch('/api/build', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ file: state.file, sections: state.sections }),
+    }).then(r => r.json());
+    if (res.error) { setStatus('Build failed: ' + res.error, 'err'); }
+    else { setStatus(`Built ${res.path} (${(res.bytes/1024/1024).toFixed(2)} MB)`, 'ok'); }
+  } catch (e) {
+    setStatus('Build failed: ' + e.message, 'err');
+  } finally {
+    buildBtn.disabled = false;
+  }
+});
+
+fileSelect.addEventListener('change', () => loadFile(fileSelect.value));
+
+loadFile('index');
+</script>
+</body>
+</html>
