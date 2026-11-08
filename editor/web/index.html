@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Costa Section Editor</title>
+<style>
+  /* ---- design plan ----
+     layout: top bar (file status + actions) · left rail (section list,
+     collapses above the main pane on narrow screens) · right pane, split
+     into an HTML editor and a live rendered preview.
+     color: workbench neutrals with one warm accent borrowed from the
+     La Costa site itself (clay), so the tool visually rhymes with the
+     page it edits.
+     type: Fraunces for the title/empty-state (matches the site), a
+     system sans for UI chrome, ui-monospace for the HTML editor.
+  */
+  :root{
+    --bg:#F7F1E4; --panel:#FBF7EE; --panel-2:#FFFFFF; --line:#E4D9C4;
+    --text:#2B1A13; --text-dim:#83663A; --accent:#83663A; --accent-fg:#FBF7EE;
+    --danger:#A6412E; --ok:#4C6B45; --code-bg:#241C13; --code-fg:#EFE7D8;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1B140E; --panel:#241B13; --panel-2:#2B2018; --line:#3C2F20;
+      --text:#F2ECE0; --text-dim:#C9A876; --accent:#C9A876; --accent-fg:#241B13;
+      --danger:#D98C7A; --ok:#9FC08E; --code-bg:#120D08; --code-fg:#EFE7D8;
+      color-scheme: dark;
+    }
+  }
+
+  *{box-sizing:border-box;}
+  [hidden]{display:none !important;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+    overflow:hidden;
+  }
+  .app{display:flex; flex-direction:column; height:100%;}
+
+  a{color:var(--accent);}
+
+  header{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:12px 16px; background:var(--panel); border-bottom:1px solid var(--line);
+  }
+  header h1{
+    font-family:'Fraunces',Georgia,serif; font-size:16px; font-weight:600;
+    margin:0; letter-spacing:.01em; white-space:nowrap;
+  }
+  .filebadge{font-size:12.5px; color:var(--text-dim); display:flex; align-items:center; gap:8px; min-width:0;}
+  .filebadge .name{font-family:ui-monospace,monospace; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px;}
+  .spacer{flex:1;}
+  .status{font-size:12.5px; color:var(--text-dim); max-width:360px;}
+  .status.ok{color:var(--ok);}
+  .status.err{color:var(--danger);}
+
+  button{
+    font:inherit; background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer;
+  }
+  button:hover{border-color:var(--accent);}
+  button.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent); font-weight:600;}
+  button.primary:hover{opacity:.9;}
+  button:disabled{opacity:.45; cursor:default;}
+  button.small{padding:5px 10px; font-size:12px;}
+
+  input[type=file]{display:none;}
+
+  main{flex:1; min-height:0; display:flex; flex-direction:column;}
+
+  /* ---- empty state ---- */
+  .empty{flex:1; display:flex; align-items:center; justify-content:center; padding:32px;}
+  .dropzone{
+    width:min(560px, 100%); border:1.5px dashed var(--line); border-radius:14px;
+    padding:48px 28px; text-align:center; background:var(--panel);
+  }
+  .dropzone.drag{border-color:var(--accent); background:var(--panel-2);}
+  .dropzone h2{font-family:'Fraunces',Georgia,serif; font-weight:600; font-size:24px; margin:0 0 10px;}
+  .dropzone p{color:var(--text-dim); font-size:14px; line-height:1.6; margin:0 0 22px;}
+  .dropzone .choices{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+
+  /* ---- editor layout ---- */
+  .editor{flex:1; min-height:0; display:flex; flex-direction:column;}
+  .layout{flex:1; min-height:0; display:flex;}
+  @media (max-width: 860px){ .layout{flex-direction:column; overflow-y:auto;} }
+
+  #sidebar{
+    width:280px; flex:0 0 280px; border-right:1px solid var(--line); background:var(--panel);
+    display:flex; flex-direction:column; min-height:0;
+  }
+  @media (max-width: 860px){
+    #sidebar{width:auto; flex:0 0 auto; max-height:40vh; border-right:none; border-bottom:1px solid var(--line);}
+  }
+  .sidebar-toolbar{padding:10px; border-bottom:1px solid var(--line); display:flex; gap:8px;}
+  .sidebar-toolbar button{flex:1;}
+  #list{flex:1; overflow-y:auto; padding:8px; min-height:0;}
+
+  .item{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:7px;
+    padding:9px 10px; margin-bottom:6px; cursor:grab; display:flex; align-items:center; gap:8px;
+    user-select:none;
+  }
+  .item:active{cursor:grabbing;}
+  .item.selected{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset;}
+  .item.dragover{border-top:2px solid var(--accent);}
+  .item .handle{color:var(--text-dim); font-size:13px; flex:0 0 auto;}
+  .item .meta{flex:1; min-width:0;}
+  .item .meta .title{font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .item .meta .id{font-size:11px; color:var(--text-dim); font-family:ui-monospace,monospace;}
+  .item .del{opacity:0; flex:0 0 auto; padding:2px 6px; font-size:14px; background:none; border:none; color:var(--text-dim);}
+  .item:hover .del{opacity:1;}
+  .item .del:hover{color:var(--danger); border-color:transparent;}
+
+  #editPane{flex:1; min-width:0; display:flex; min-height:420px;}
+  @media (max-width: 860px){ #editPane{flex-direction:column; min-height:640px;} }
+  #codeCol, #previewCol{flex:1; min-width:0; display:flex; flex-direction:column; border-right:1px solid var(--line);}
+  #previewCol{border-right:none;}
+  @media (max-width: 860px){
+    #codeCol, #previewCol{border-right:none; border-bottom:1px solid var(--line); min-height:320px;}
+  }
+  .col-head{
+    padding:8px 14px; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--text-dim); border-bottom:1px solid var(--line); background:var(--panel); flex:0 0 auto;
+  }
+  textarea{
+    flex:1; border:none; outline:none; background:var(--code-bg); color:var(--code-fg);
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12.5px; line-height:1.55;
+    padding:14px; resize:none; width:100%;
+  }
+  iframe{flex:1; border:none; background:#fff; width:100%;}
+  #emptySelection{flex:1; display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-size:14px; padding:24px; text-align:center;}
+
+  .hint{font-size:11.5px; color:var(--text-dim); padding:8px 14px; border-top:1px solid var(--line); background:var(--panel);}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>La Costa Section Editor</h1>
+    <div class="filebadge" id="fileBadge" hidden>
+      <span>editing</span><span class="name" id="fileName"></span>
+    </div>
+    <div class="spacer"></div>
+    <span class="status" id="status"></span>
+    <button class="small" id="changeFileBtn" hidden>Load a different file</button>
+    <button class="primary" id="saveBtn" hidden>Save edited file</button>
+  </header>
+
+  <main>
+    <div class="empty" id="emptyState">
+      <div class="dropzone" id="dropzone">
+        <h2>Open a page to edit</h2>
+        <p>
+          Drop <code>index.html</code> or <code>index-summary.html</code> here, or choose
+          one from your computer. Reorder, edit, and add sections, then save the rebuilt
+          file back to your disk — nothing is uploaded anywhere; it all runs in this page.
+        </p>
+        <div class="choices">
+          <button class="primary" id="chooseBtn">Choose a file…</button>
+        </div>
+        <input type="file" id="fileInput" accept=".html,text/html">
+      </div>
+    </div>
+
+    <div class="editor" id="editorRoot" hidden>
+      <div class="layout">
+        <div id="sidebar">
+          <div class="sidebar-toolbar">
+            <button id="addBtn">+ Add section</button>
+          </div>
+          <div id="list"></div>
+        </div>
+        <div id="editPane">
+          <div id="emptySelection">Select a section on the left, or add a new one.</div>
+        </div>
+      </div>
+      <div class="hint">Drag cards to reorder · click a card to edit its HTML · Save downloads a complete, rebuilt HTML file.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  const state = { html:null, fileName:null, preamble:'', postamble:'', chromeHead:'', sections:[], selectedUid:null, nextNew:0 };
+
+  const el = (id) => document.getElementById(id);
+  const fileInput = el('fileInput');
+  const dropzone = el('dropzone');
+  const chooseBtn = el('chooseBtn');
+  const changeFileBtn = el('changeFileBtn');
+  const saveBtn = el('saveBtn');
+  const statusEl = el('status');
+  const fileBadge = el('fileBadge');
+  const fileNameEl = el('fileName');
+  const emptyState = el('emptyState');
+  const editorRoot = el('editorRoot');
+  const listEl = el('list');
+  const editPane = el('editPane');
+  const addBtn = el('addBtn');
+
+  function setStatus(msg, cls){
+    statusEl.textContent = msg || '';
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- parsing (mirrors editor/editor_server.py's split_sections) ----------
+
+  function extendBackForComment(text, idx){
+    let j = idx;
+    while (j > 0 && ' \t\n\r'.indexOf(text[j-1]) !== -1) j--;
+    if (j >= 3 && text.slice(j-3, j) === '-->'){
+      const commentStart = text.lastIndexOf('<!--', j-3);
+      if (commentStart !== -1) return commentStart;
+    }
+    return idx;
+  }
+
+  function splitSections(html){
+    const firstRe = /<section\b/i;
+    const firstMatch = firstRe.exec(html);
+    if (!firstMatch) throw new Error('No <section> found in this file.');
+    const start = extendBackForComment(html, firstMatch.index);
+
+    const tagRe = /<(\/?)section\b/gi;
+    tagRe.lastIndex = start;
+    let depth = 0, lastSectionEnd = null, m;
+    while ((m = tagRe.exec(html)) !== null){
+      if (m[1] === ''){
+        depth++;
+      } else {
+        depth--;
+        if (depth === 0){
+          const tagEnd = html.indexOf('>', m.index + m[0].length) + 1;
+          lastSectionEnd = tagEnd;
+          const rest = html.slice(lastSectionEnd);
+          const stripped = rest.replace(/^\s+/, '');
+          const commentThenSection = /^<!--[\s\S]*?-->\s*<section\b/.test(stripped);
+          if (!commentThenSection && stripped.indexOf('<section') !== 0) break;
+        }
+      }
+    }
+    if (lastSectionEnd === null) throw new Error('Unbalanced <section> tags in this file.');
+
+    const preamble = html.slice(0, start);
+    const middle = html.slice(start, lastSectionEnd);
+    const postamble = html.slice(lastSectionEnd);
+
+    const sections = [];
+    depth = 0;
+    let segStart = null;
+    const tagRe2 = /<(\/?)section\b/gi;
+    let mm;
+    while ((mm = tagRe2.exec(middle)) !== null){
+      if (mm[1] === ''){
+        if (depth === 0) segStart = extendBackForComment(middle, mm.index);
+        depth++;
+      } else {
+        depth--;
+        if (depth === 0){
+          const tagEnd = middle.indexOf('>', mm.index + mm[0].length) + 1;
+          sections.push(middle.slice(segStart, tagEnd));
+        }
+      }
+    }
+    return { preamble, sections, postamble };
+  }
+
+  function stripTags(s){
+    return s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  function extractLabel(sectionHtml){
+    const head = sectionHtml.slice(0, 400);
+    const idM = /<section\b[^>]*\bid="([^"]*)"/i.exec(head);
+    const sid = idM ? idM[1] : '';
+
+    const h2 = /<h2[^>]*>([\s\S]*?)<\/h2>/i.exec(sectionHtml);
+    if (h2){
+      const t = stripTags(h2[1]);
+      if (t) return { id: sid, label: t.slice(0, 80) };
+    }
+    const eyebrow = /<span class="eyebrow"[^>]*>([\s\S]*?)<\/span>/i.exec(sectionHtml);
+    if (eyebrow){
+      const t = stripTags(eyebrow[1]);
+      if (t) return { id: sid, label: t.slice(0, 80) };
+    }
+    const cap = /<caption>([\s\S]*?)<\/caption>/i.exec(sectionHtml);
+    if (cap){
+      const t = stripTags(cap[1]);
+      if (t) return { id: sid, label: t.slice(0, 80) };
+    }
+    return { id: sid, label: sid || 'Untitled section' };
+  }
+
+  function getChromeHead(html){
+    const m = /<head[^>]*>([\s\S]*?)<\/head>/i.exec(html);
+    return m ? m[1] : '';
+  }
+
+  const NEW_SECTION_TEMPLATE = [
+    '<!-- New section -->',
+    '<section class="pad" id="new-section">',
+    '  <div class="wrap">',
+    '    <div class="section-head reveal">',
+    '      <span class="eyebrow">New section</span>',
+    '      <h2>Untitled heading.</h2>',
+    '      <p>Edit this section\'s HTML on the left, then Save.</p>',
+    '    </div>',
+    '  </div>',
+    '</section>'
+  ].join('\n');
+
+  // ---------- loading a file ----------
+
+  function loadFile(file){
+    setStatus('Reading…');
+    const reader = new FileReader();
+    reader.onerror = () => setStatus('Could not read that file.', 'err');
+    reader.onload = () => {
+      const html = reader.result;
+      try {
+        const { preamble, sections, postamble } = splitSections(html);
+        state.html = html;
+        state.fileName = file.name;
+        state.preamble = preamble;
+        state.postamble = postamble;
+        state.chromeHead = getChromeHead(html);
+        state.sections = sections.map((h, i) => {
+          const { id, label } = extractLabel(h);
+          return { uid: 'orig-' + i + '-' + (id || 'section'), id, label, html: h };
+        });
+        state.selectedUid = null;
+        openEditor();
+      } catch (e){
+        setStatus('Could not parse this file: ' + e.message, 'err');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function openEditor(){
+    emptyState.hidden = true;
+    editorRoot.hidden = false;
+    fileBadge.hidden = false;
+    fileNameEl.textContent = state.fileName;
+    changeFileBtn.hidden = false;
+    saveBtn.hidden = false;
+    setStatus(state.sections.length + ' sections loaded', 'ok');
+    renderList();
+    renderEditPane();
+  }
+
+  function resetToEmpty(){
+    state.html = null; state.sections = []; state.selectedUid = null;
+    emptyState.hidden = false;
+    editorRoot.hidden = true;
+    fileBadge.hidden = true;
+    changeFileBtn.hidden = true;
+    saveBtn.hidden = true;
+    fileInput.value = '';
+    setStatus('');
+  }
+
+  // ---------- sidebar list ----------
+
+  function renderList(){
+    listEl.innerHTML = '';
+    state.sections.forEach((s) => {
+      const item = document.createElement('div');
+      item.className = 'item' + (s.uid === state.selectedUid ? ' selected' : '');
+      item.draggable = true;
+      item.dataset.uid = s.uid;
+      item.innerHTML =
+        '<span class="handle">⠿</span>' +
+        '<span class="meta">' +
+          '<div class="title">' + escapeHtml(s.label || '(untitled)') + '</div>' +
+          '<div class="id">#' + escapeHtml(s.id || '—') + '</div>' +
+        '</span>' +
+        '<button class="del" title="Remove section" type="button">✕</button>';
+
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.del')) return;
+        state.selectedUid = s.uid;
+        renderList();
+        renderEditPane();
+      });
+      item.querySelector('.del').addEventListener('click', () => {
+        if (!confirm('Remove "' + s.label + '" from this build? (Nothing is deleted until you Save.)')) return;
+        state.sections = state.sections.filter(x => x.uid !== s.uid);
+        if (state.selectedUid === s.uid) state.selectedUid = null;
+        renderList();
+        renderEditPane();
+      });
+      item.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/uid', s.uid);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      item.addEventListener('dragover', (e) => { e.preventDefault(); item.classList.add('dragover'); });
+      item.addEventListener('dragleave', () => item.classList.remove('dragover'));
+      item.addEventListener('drop', (e) => {
+        e.preventDefault();
+        item.classList.remove('dragover');
+        const draggedUid = e.dataTransfer.getData('text/uid');
+        if (!draggedUid || draggedUid === s.uid) return;
+        const fromIdx = state.sections.findIndex(x => x.uid === draggedUid);
+        const toIdx = state.sections.findIndex(x => x.uid === s.uid);
+        const [moved] = state.sections.splice(fromIdx, 1);
+        state.sections.splice(toIdx, 0, moved);
+        renderList();
+      });
+      listEl.appendChild(item);
+    });
+  }
+
+  function currentSection(){
+    return state.sections.find(s => s.uid === state.selectedUid) || null;
+  }
+
+  let previewTimer = null;
+  function renderPreview(html){
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      const frame = document.getElementById('previewFrame');
+      if (!frame) return;
+      const doc = '<!DOCTYPE html><html><head>' + state.chromeHead + '</head>' +
+        '<body style="margin:0;">' + html +
+        '<script>document.querySelectorAll(".reveal,.reveal-stagger").forEach(e=>e.classList.add("in"));<\/script>' +
+        '</body></html>';
+      frame.srcdoc = doc;
+    }, 250);
+  }
+
+  function renderEditPane(){
+    const sec = currentSection();
+    if (!sec){
+      editPane.innerHTML = '<div id="emptySelection">Select a section on the left, or add a new one.</div>';
+      return;
+    }
+    editPane.innerHTML =
+      '<div id="codeCol">' +
+        '<div class="col-head">HTML — ' + escapeHtml(sec.label) + '</div>' +
+        '<textarea id="codeArea" spellcheck="false">' + escapeHtml(sec.html) + '</textarea>' +
+      '</div>' +
+      '<div id="previewCol">' +
+        '<div class="col-head">Live preview</div>' +
+        '<iframe id="previewFrame" title="Section preview"></iframe>' +
+      '</div>';
+    const codeArea = el('codeArea');
+    codeArea.addEventListener('input', () => {
+      sec.html = codeArea.value;
+      renderPreview(sec.html);
+    });
+    renderPreview(sec.html);
+  }
+
+  addBtn.addEventListener('click', () => {
+    const uid = 'new-' + (state.nextNew++) + '-' + Date.now();
+    const newSec = { uid, id: 'new-section', label: 'New section', html: NEW_SECTION_TEMPLATE };
+    const insertAt = state.selectedUid
+      ? state.sections.findIndex(s => s.uid === state.selectedUid) + 1
+      : state.sections.length;
+    state.sections.splice(insertAt, 0, newSec);
+    state.selectedUid = uid;
+    renderList();
+    renderEditPane();
+  });
+
+  // ---------- file open wiring ----------
+
+  chooseBtn.addEventListener('click', () => fileInput.click());
+  changeFileBtn.addEventListener('click', () => {
+    if (state.sections.length && !confirm('Discard the current edits and load a different file?')) return;
+    resetToEmpty();
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
+  });
+  ;['dragenter','dragover'].forEach(evt => dropzone.addEventListener(evt, (e) => {
+    e.preventDefault(); dropzone.classList.add('drag');
+  }));
+  ;['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, (e) => {
+    e.preventDefault(); dropzone.classList.remove('drag');
+  }));
+  dropzone.addEventListener('drop', (e) => {
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+
+  // ---------- save: ordinary browser download ----------
+
+  function buildOutput(){
+    const pieces = state.sections.map(s => s.html.replace(/\n+$/, ''));
+    const middle = pieces.join('\n\n');
+    return state.preamble.replace(/\n+$/, '') + '\n\n' + middle + '\n\n' + state.postamble.replace(/^\n+/, '');
+  }
+
+  function triggerBrowserDownload(filename, blob){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function doSave(){
+    if (!state.sections.length){
+      setStatus('Nothing to save.', 'err');
+      return;
+    }
+    saveBtn.disabled = true;
+    setStatus('Building…');
+    const output = buildOutput();
+    const blob = new Blob([output], { type: 'text/html' });
+
+    try {
+      triggerBrowserDownload(state.fileName, blob);
+      setStatus('Downloaded ' + state.fileName + ' (' + (blob.size/1024/1024).toFixed(2) + ' MB) — check your downloads folder.', 'ok');
+      saveBtn.disabled = false;
+      return;
+    } catch (e){
+      // fall through to clipboard fallback
+    }
+
+    try {
+      await navigator.clipboard.writeText(output);
+      setStatus('Could not trigger a download — copied the rebuilt ' + state.fileName + ' to your clipboard instead. Paste it into a text editor and save as ' + state.fileName + '.', 'ok');
+    } catch (e2){
+      setStatus('Could not save or copy automatically. The rebuilt HTML is in window.__lcOutput in the browser console.', 'err');
+      window.__lcOutput = output;
+    }
+    saveBtn.disabled = false;
+  }
+
+  saveBtn.addEventListener('click', doSave);
+
+})();
+</script>
+</body>
+</html>

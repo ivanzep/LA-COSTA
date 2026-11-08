@@ -137,6 +137,26 @@ Reordering only moves the `<section>` blocks themselves — it does not rewrite
 hardcoded text like "Part Three — Positioning" inside a section, so fix that
 by hand in the HTML editor pane if you reorder the numbered Part sections.
 
+### Browser-only version (GitHub Pages, no Python required)
+
+`editor/web/index.html` is the same editor with no backend at all — it reads
+your file via a plain file picker/drag-drop (`FileReader`, entirely
+client-side; nothing is uploaded) and **Save** triggers an ordinary browser
+download of the rebuilt file instead of writing through a local server. It's
+a straight port of the same `splitSections` logic in JavaScript, verified to
+round-trip both `index.html` and `index-summary.html` byte-for-byte.
+
+Enable GitHub Pages once (Settings → Pages → Deploy from a branch → `main` →
+`/ (root)`), then it's reachable at:
+
+```
+https://<your-username>.github.io/LA-COSTA/editor/web/
+```
+
+The investor site itself keeps living at the repo's actual root URL
+(`https://<your-username>.github.io/LA-COSTA/`) — Pages serves every file in
+the repo, so the two don't conflict.
+
 ## Known gotchas (learned the hard way — don't rediscover these)
 
 - **Full-page screenshot tools break on this page's height.** The page is
